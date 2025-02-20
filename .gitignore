@@ -1,0 +1,13 @@
+
+# Git Ignore patterns
+
+# teles
+
+links.md
+
+# Compiled files
+
+./parms
+./seqms
+*.o
+*.out
