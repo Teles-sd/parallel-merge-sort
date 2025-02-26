@@ -1,13 +1,14 @@
 
 # Git Ignore patterns
 
-# teles
+# Other files (teles)
 
 links.md
+PaperNotes.md
 
 # Compiled files
 
-./parms
-./seqms
+parms
+seqms
 *.o
 *.out
