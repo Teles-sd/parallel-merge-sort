@@ -11,10 +11,10 @@
 
 ## Compile
 
-Compilar versão sequencial:
+Compilar versão sequencial (OpenMP necessário pelas funções de temporização):
 
 ```shell
-gcc  seqms.c  -o seqms
+gcc  seqms.c  -o seqms  -fopenmp
 ```
 
 Testar versão sequencial:
@@ -24,7 +24,11 @@ Testar versão sequencial:
 ```shell
 ./seqms 100
 ```
+```shell
+./seqms -h
+```
 
+<br/>
 
 Compilar versão paralela:
 

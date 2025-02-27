@@ -1,6 +1,7 @@
 #include <stdio.h>
-#include <stdlib.h>    // atoi, rand
-#include <unistd.h>    // getopt
+#include <stdlib.h>     // atoi, rand
+#include <unistd.h>     // getopt
+#include <omp.h>        // omp_get_wtime
 
 // Sort (in ascending order) a randomly generated array of integers, using Merge-Sort algorithm.
 
@@ -24,6 +25,9 @@ int quietFlag = 0;
 
 int main(int argc, char* argv[]) {
 
+    int timeFlag = 0;
+    char *timeUnit = "";
+
     // No extra command line argument passed
     if (argc == 1) {
         print_help();
@@ -37,7 +41,7 @@ int main(int argc, char* argv[]) {
     int flag;
     // optind = 2;                                     // Start index of the next element to be processed in argv
     opterr = 0;                                     // getopt() does not print an error message
-    while ((flag = getopt(argc, argv, ":hp:qt")) != -1) {
+    while ((flag = getopt(argc, argv, ":hp:qtmu")) != -1) {
         switch (flag) {
             case 'h':
                 print_help();
@@ -49,10 +53,18 @@ int main(int argc, char* argv[]) {
             case 'q':
                 quietFlag = 1;
                 break;
-            case 't':                               // timer...
-                printf("Got -t\n");
+            case 't':
+                timeFlag = 1;
                 break;
-            case ':':                               // missing positional argument
+            case 'm':
+                timeFlag = 1000;
+                timeUnit = "mili";
+                break;
+            case 'u':
+                timeFlag = 1000000;
+                timeUnit = "micro";
+                break;
+            case ':':                               // when missing positional argument
                 if (optopt == 'p') {
                     printFlag = 1;
                 } else {
@@ -72,7 +84,8 @@ int main(int argc, char* argv[]) {
 
     // Array size
     if ( !(0 < arraySize && arraySize <= 1000000) ) {
-        printf("\nArray size invalid: %d\n", arraySize);
+        printf("\nArray size invalid: %d", arraySize);
+        printf("\nMaximun array size: 1000000\n");
         print_help();
         return 1;
     }
@@ -102,16 +115,25 @@ int main(int argc, char* argv[]) {
         displayArray(array, arraySize);
     }
 
+    // Setting timer
+    double wtime_start, wtime_taken;
+    
     // Sorting
-    mergeSort(array, arraySize);                    // To-do: include print of sorting process
+    if (timeFlag) wtime_start = omp_get_wtime();
+    mergeSort(array, arraySize);
+    if (timeFlag) wtime_taken = omp_get_wtime() - wtime_start;
+    
+    // Outputs
     if (!quietFlag) {
         printf("\nArray after sorting:\n");
         displayArray(array, arraySize);
+        if (timeFlag) printf("\nTime taken sorting: %f %sseconds.\n", wtime_taken*timeFlag, timeUnit);
+        printf("\n");
     } else {
-        printf("\nDone!");
+        if (timeFlag) printf("%f", wtime_taken*timeFlag);
+        else printf("\nDone!\n\n");
     }
 
-    printf("\n");
     return 0;
 }
 
@@ -217,7 +239,13 @@ void print_help(void) {
         "\n"
         "       -q      Quiet. Minimal print stuff.\n"
         "\n"
-        "       -t      Time something...?\n"
+        "       -t      Display time taken for execution of the marge-sort algorithm part only. If passed \n"
+        "               together with `-q` outputs only the time (in seconds) to stdout.\n"
+        "               If used with -p, the time is unreliable, as it also has to do extra print operations.\n"
+        "\n"
+        "       -m      Same as -t, but miliseconds.\n"
+        "\n"
+        "       -u      Same as -t, but microseconds.\n"
         "\n"
         "       -h      Display this help message.\n"
         "\n"
