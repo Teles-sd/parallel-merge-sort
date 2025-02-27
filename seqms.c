@@ -1,34 +1,92 @@
 #include <stdio.h>
 #include <stdlib.h>    // atoi, rand
+#include <unistd.h>    // getopt
+
+// Sort (in ascending order) a randomly generated array of integers, using Merge-Sort algorithm.
+
+void arrMerge();
+void arrDivide();
+void mergeSort();
 
 void print_help(void);
 void displayArray();
 
-int main(int argc, char *argv[]) {
+void updateDepth();
+void displaySubarray();
+void displayTwoSubarrays();
+
+int printFlag = 0;
+int printDepth = 3;
+int curDepth = 0;
+int maxDepth = 0;
+
+int quietFlag = 0;
+
+int main(int argc, char* argv[]) {
 
     // No extra command line argument passed
-    if (argc != 2) {
+    if (argc == 1) {
         print_help();
-        return 0;
+        return 1;
     }
 
-    // Get arguments
+    // First argument
     int arraySize = atoi (argv[1]);                 // Interprets an integer value in a byte string
-    printf("Array size: %d\n", arraySize);
-    printf("\n");
-    if ( !(0 < arraySize && arraySize <= 1000000) ) {
-        print_help();
-        return 0;
+    
+    // Get flags
+    int flag;
+    // optind = 2;                                     // Start index of the next element to be processed in argv
+    opterr = 0;                                     // getopt() does not print an error message
+    while ((flag = getopt(argc, argv, ":hp:qt")) != -1) {
+        switch (flag) {
+            case 'h':
+                print_help();
+                return 1;
+            case 'p':
+                printFlag = 1;
+                printDepth = atoi(optarg);
+                break;
+            case 'q':
+                quietFlag = 1;
+                break;
+            case 't':                               // timer...
+                printf("Got -t\n");
+                break;
+            case ':':                               // missing positional argument
+                if (optopt == 'p') {
+                    printFlag = 1;
+                } else {
+                    print_help();
+                    return 1;
+                }
+                break;
+            case '?':
+                fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                print_help();
+                return 1;
+            default:
+                printf("Got a '%c'", flag);
+                return 1;
+        }
     }
 
+    // Array size
+    if ( !(0 < arraySize && arraySize <= 1000000) ) {
+        printf("\nArray size invalid: %d\n", arraySize);
+        print_help();
+        return 1;
+    }
+    if (!quietFlag) printf("\nArray size: %d\n", arraySize);
+    
     // Creating array
     int array[arraySize];
     for (int i=0; i<arraySize; i++)
         array[i] = i;
 
-    printf("Array before randomizing.\n");
-    displayArray(array, arraySize);
-    printf("\n");
+    if (!quietFlag) {
+        printf("\nArray before randomizing:\n");
+        displayArray(array, arraySize);
+    }
     
     // Randomizing
     srand (42069);
@@ -39,19 +97,129 @@ int main(int argc, char *argv[]) {
         array[i] = array[randomIndex];
         array[randomIndex] = aux;
     }
-    printf("Array after randomizing.\n");
-    displayArray(array, arraySize);
+    if (!quietFlag) {
+        printf("\nArray after randomizing:\n");
+        displayArray(array, arraySize);
+    }
 
+    // Sorting
+    mergeSort(array, arraySize);                    // To-do: include print of sorting process
+    if (!quietFlag) {
+        printf("\nArray after sorting:\n");
+        displayArray(array, arraySize);
+    } else {
+        printf("\nDone!");
+    }
+
+    printf("\n");
     return 0;
 }
 
+// --------------- MERGE SORT ALGORITHM -------------------
+
+// Merge two subarrays of arr in order
+// Internal function of mergeSort; should no be called in main
+void arrMerge(int arr[], int indexL, int indexM, int indexR) {
+    
+    // subarrays are:
+    // arrAux1[indexL .. indexM]
+    // arrAux2[indexM+1..indexR]
+    
+    // Auxiliary arrays
+    int arrAuxSize1 = indexM+1 - indexL;
+    int arrAuxSize2 = indexR   - indexM;
+    int arrAux1[arrAuxSize1], arrAux2[arrAuxSize2];
+
+    for (int i = 0; i < arrAuxSize1; i++)
+        arrAux1[i] = arr[indexL + i];
+    for (int i = 0; i < arrAuxSize2; i++)
+        arrAux2[i] = arr[indexM + i + 1];
+
+    // Merging auxiliar arrays orderly into arr
+    int i, r, l;
+    i = indexL;
+    r = l = 0;
+    while (r < arrAuxSize1 && l < arrAuxSize2) {
+        if (arrAux1[r] <= arrAux2[l]) {
+            arr[i] = arrAux1[r];
+            r++;
+        } else {
+            arr[i] = arrAux2[l];
+            l++;
+        }
+        i++;
+    }
+
+    // Copying the remaining elements, if any
+    while (r < arrAuxSize1) {
+        arr[i] = arrAux1[r];
+        r++;
+        i++;
+    }
+    while (l < arrAuxSize2) {
+        arr[i] = arrAux2[l];
+        l++;
+        i++;
+    }
+}
+
+// Recursive calls dividing the array into subarrays
+// Internal function of mergeSort; should no be called in main
+void arrDivide(int arr[], int indexL, int indexR) {
+
+    // If the indexes are the same, the subarray has only one element, and thus, is sorted
+    if (indexL < indexR) {
+
+        int indexM = indexL + (indexR - indexL) / 2;
+        
+        updateDepth(1);
+        displaySubarray(arr, indexL, indexR, "subarray");
+        displayTwoSubarrays(arr, indexL, indexM, indexR);
+        
+        arrDivide(arr, indexL, indexM);
+        arrDivide(arr, indexM + 1, indexR);
+        
+        updateDepth(0);
+        displaySubarray(arr, indexL, indexR, "no order");
+        
+        arrMerge(arr, indexL, indexM, indexR);
+        
+        displaySubarray(arr, indexL, indexR, "ordered");
+    }
+}
+
+void mergeSort(int *arr, int arrSize) {
+
+    arrDivide(arr, 0, arrSize-1);
+    
+    if (printFlag && !quietFlag)
+        printf("\nMax depth reached: %d\n", maxDepth);
+}
+
+// --------------- MISC FUNCTIONS -------------------
+
 void print_help(void) {
     printf(
-        "Usage:\n"
-        "   seqms arraySize\n"
         "\n"
-        "Description:\n"
-        "    arraySize must be an integer value bigger than 0, and with the maximum value of 10^6. Using more might overflow (for now).\n"
+        "USAGE\n"
+        "       seqms arraySize [options]\n"
+        "\n"
+        "DESCRIPTION\n"
+        "       Sort (in ascending order) a randomly generated array of integers, using Merge-Sort algorithm.\n"
+        "\n"
+        "       arraySize must be an integer value bigger than 0, and with the maximum value of 10^6.\n"
+        "       Using more might overflow (for now).\n"
+        "\n"
+        "OPTIONS\n"
+        "       -p [printDepth]\n"
+        "               Print steps of the sorting process. Sets printDepth if given (must be positive integer),\n"
+        "               which defines how deep into the recurrence it will print the arrays.\n"
+        "\n"
+        "       -q      Quiet. Minimal print stuff.\n"
+        "\n"
+        "       -t      Time something...?\n"
+        "\n"
+        "       -h      Display this help message.\n"
         "\n"
     );
 }
@@ -59,17 +227,78 @@ void print_help(void) {
 void displayArray(int *arr, int arrSize) {
     printf("array: [");
     int counter = 0;
+    char *printString = arrSize <=      10 ? "%1i " :
+                        arrSize <=     100 ? "%2i " :
+                        arrSize <=    1000 ? "%3i " :
+                        arrSize <=   10000 ? "%4i " :
+                        arrSize <=  100000 ? "%5i " : "%6i ";
     for (int i=0; i<arrSize; i++) {
-        printf( arrSize <=      10 ? "%1i " :
-                arrSize <=     100 ? "%2i " :
-                arrSize <=    1000 ? "%3i " :
-                arrSize <=   10000 ? "%4i " :
-                arrSize <=  100000 ? "%5i " : "%6i ", arr[i]);
+        printf(printString, arr[i]);
         counter++;
-        if (counter == 25 && i != arrSize-1) {
+        if ((counter == 25) && (i+1 != arrSize)) {
             printf("\n        ");
             counter = 0;
         }
     }
     printf("]\n");
+}
+
+void updateDepth(int d) {
+    // d:
+    // 1 for increase
+    // 0 for decrease
+
+    if (printFlag && !quietFlag) {
+        if (d){
+            curDepth++;
+            if (curDepth <= printDepth)
+                // printf("\nCurrent depth: ↓ %d\n", curDepth);
+                printf("\nCurrent depth: v %d\n", curDepth);
+            if (curDepth > maxDepth)
+                maxDepth = curDepth;
+        } else {
+            curDepth--;
+            if (curDepth <= printDepth)
+                // printf("\nCurrent depth: ↑ %d\n", curDepth);
+                printf("\nCurrent depth: ^ %d\n", curDepth);
+        }
+    }
+}
+
+void displaySubarray(int arr[], int indexL, int indexR, char* name) {
+    
+    // name should have at most 8 chars
+    // int len;
+    // for(len = 0; name[len] != '\0'; len++);
+    // if (len > 8) name = "subarray";
+
+    if (printFlag && (curDepth <= printDepth) && !quietFlag) {
+        int counter;
+        int arrSize;
+        char *printString;
+
+        counter = 0;
+        arrSize = indexR - indexL;
+        printString =   arrSize <=      10 ? "%1i " :
+                        arrSize <=     100 ? "%2i " :
+                        arrSize <=    1000 ? "%3i " :
+                        arrSize <=   10000 ? "%4i " :
+                        arrSize <=  100000 ? "%5i " : "%6i ";
+        printf("%8s: [", name);
+        for (int i=indexL; i<(indexR+1); i++) {
+            printf(printString , arr[i]);
+            counter++;
+            if ((counter == 25) && (i-indexL != arrSize)) {
+                // printf("\ni %d; indexL %d; arrSize %d", i, indexL, arrSize);
+                printf("\n           ");
+                counter = 0;
+            }
+        }
+        printf("]\n");
+    }
+}
+
+void displayTwoSubarrays(int arr[], int indexL, int indexM, int indexR) {
+    displaySubarray(arr, indexL, indexM, "L array");
+    displaySubarray(arr, indexM + 1, indexR, "R array");
 }
