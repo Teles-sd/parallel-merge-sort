@@ -14,3 +14,9 @@ It will then read through each element **once** while sorting them, and thus thi
 $$
 \textit{O}(n \log n)
 $$
+
+---
+
+Each `int` takes 4 bytes in this machine. More than 2094534 values in a array overflows the stack. Also, a billion values would take 4 gigabytes.
+
+---

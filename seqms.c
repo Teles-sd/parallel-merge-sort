@@ -10,6 +10,8 @@ void arrDivide();
 void mergeSort();
 
 void print_help(void);
+
+char * printStringArrSize();
 void displayArray();
 
 void updateDepth();
@@ -24,6 +26,7 @@ int curDepth = 0;
 int maxDepth = 0;
 
 int quietFlag = 0;
+int moreQuietFlag = 0;
 
 int main(int argc, char* argv[]) {
 
@@ -59,14 +62,15 @@ int main(int argc, char* argv[]) {
                 else printf("Invalid value (%d). Default used.\n", inputVal);
                 break;
             case 'q':
-                quietFlag = 1;
+                if (quietFlag) moreQuietFlag = 1;
+                else quietFlag = 1;
                 break;
             case 't':
                 timeFlag = 1;
                 break;
             case 'm':
                 timeFlag = 1000;
-                timeUnit = "mili";
+                timeUnit = "milli";
                 break;
             case 'u':
                 timeFlag = 1000000;
@@ -108,11 +112,17 @@ int main(int argc, char* argv[]) {
     }
     if (!quietFlag) printf("\nArray size: %d\n", arraySize);
     
-    // Creating array
-    int array[arraySize];
-    for (int i=0; i<arraySize; i++)
-        array[i] = i;
+    // Allocating memory and creating array
+    int *array = malloc(arraySize * sizeof(int));
 
+    // Check if malloc was successful
+    if (array == NULL) { 
+        printf("Memory allocation failed!\n"); 
+        return 1;
+    }
+
+    // Initializing values
+    for (int i=0; i<arraySize; i++) array[i] = i;
     if (!quietFlag) {
         printf("\nArray before randomizing:\n");
         displayArray(array, arraySize);
@@ -127,7 +137,7 @@ int main(int argc, char* argv[]) {
         array[i] = array[randomIndex];
         array[randomIndex] = aux;
     }
-    if (!quietFlag) {
+    if (!moreQuietFlag) {
         printf("\nArray after randomizing:\n");
         displayArray(array, arraySize);
     }
@@ -141,16 +151,19 @@ int main(int argc, char* argv[]) {
     if (timeFlag) wtime_taken = omp_get_wtime() - wtime_start;
     
     // Outputs
-    if (!quietFlag) {
+    if (!moreQuietFlag) {
         printf("\nArray after sorting:\n");
         displayArray(array, arraySize);
         if (timeFlag) printf("\nTime taken sorting: %f %sseconds.\n", wtime_taken*timeFlag, timeUnit);
         printf("\n");
     } else {
         if (timeFlag) printf("%f", wtime_taken*timeFlag);
-        else printf("\nDone!\n\n");
+        // else printf("\nDone!\n\n");
     }
 
+    // Freeing allocated memory
+    free(array);
+    
     return 0;
 }
 
@@ -247,7 +260,7 @@ void print_help(void) {
         "DESCRIPTION\n"
         "       Sort (in ascending order) a randomly generated array of integers, using Merge-Sort algorithm.\n"
         "\n"
-        "       arraySize must be an integer value bigger than 0, and with the maximum value of 10^6.\n"
+        "       arraySize must be an integer value bigger than 0, and with the maximum value of 1000000 (10^6).\n"
         "       Using more might overflow (for now).\n"
         "\n"
         "OPTIONS\n"
@@ -255,14 +268,15 @@ void print_help(void) {
         "               Print steps of the sorting process. Sets printMaxDepth if given (must be positive integer),\n"
         "               which defines how deep into the recurrence it will print the arrays. If printMaxDepth is not\n"
         "               given, the default value is 3.\n"
+        "               Overriden by -q flag.\n"
         "\n"
-        "       -q      Quiet. Minimal print stuff.\n"
+        "       -q      Prints less stuff. Use twice to print nothing (except for the time, if -t is also passed).\n"
         "\n"
         "       -t      Display time taken for execution of the marge-sort algorithm part only. If passed \n"
         "               together with `-q` outputs only the time (in seconds) to stdout.\n"
         "               If used with -p, the time is unreliable, as it also has to do extra print operations.\n"
         "\n"
-        "       -m      Same as -t, but miliseconds.\n"
+        "       -m      Same as -t, but milliseconds.\n"
         "\n"
         "       -u      Same as -t, but microseconds.\n"
         "\n"
@@ -274,14 +288,27 @@ void print_help(void) {
     );
 }
 
+char * printStringArrSize(int arrSize){
+    return  arrSize <=        10 ? "%1i " :
+            arrSize <=       100 ? "%2i " :
+            arrSize <=      1000 ? "%3i " :
+            arrSize <=     10000 ? "%4i " :
+            arrSize <=    100000 ? "%5i " : "%6i ";
+    
+    // return  arrSize <=        10 ? "%1i " :
+    //         arrSize <=       100 ? "%2i " :
+    //         arrSize <=      1000 ? "%3i " :
+    //         arrSize <=     10000 ? "%4i " :
+    //         arrSize <=    100000 ? "%5i " :
+    //         arrSize <=   1000000 ? "%6i " :
+    //         arrSize <=  10000000 ? "%7i " :
+    //         arrSize <= 100000000 ? "%8i " : "%9i ";
+}
+
 void displayArray(int *arr, int arrSize) {
     printf("array: [");
     int counter = 0;
-    char *printString = arrSize <=      10 ? "%1i " :
-                        arrSize <=     100 ? "%2i " :
-                        arrSize <=    1000 ? "%3i " :
-                        arrSize <=   10000 ? "%4i " :
-                        arrSize <=  100000 ? "%5i " : "%6i ";
+    char *printString = printStringArrSize(arrSize);
     for (int i=0; i<arrSize; i++) {
         printf(printString, arr[i]);
         counter++;
@@ -332,11 +359,7 @@ void displaySubarray(int arr[], int indexL, int indexR, char* name) {
 
     counter = 0;
     arrSize = indexR - indexL;
-    printString =   arrSize <=      10 ? "%1i " :
-                    arrSize <=     100 ? "%2i " :
-                    arrSize <=    1000 ? "%3i " :
-                    arrSize <=   10000 ? "%4i " :
-                    arrSize <=  100000 ? "%5i " : "%6i ";
+    printString = printStringArrSize(arrSize);
     printf("%8s: [", name);
     for (int i=indexL; i<(indexR+1); i++) {
         printf(printString , arr[i]);
