@@ -9,15 +9,15 @@
   - _Speedup_, eficiência e desempenho.
   - Média de 5+ execuções para cada medida.
 
-## Compile
+## Versão sequencial
 
-Compilar versão sequencial (OpenMP necessário pelas funções de temporização):
+Compilar (OpenMP necessário pelas funções de temporização):
 
 ```shell
 gcc  seqms.c  -o seqms  -fopenmp
 ```
 
-Testar versão sequencial:
+Testar:
 ```shell
 ./seqms
 ```
@@ -28,9 +28,18 @@ Testar versão sequencial:
 ./seqms -h
 ```
 
-<br/>
+Rodar múltiplos testes usando diferentes tamanhos de vetores e salvando os resultados em [`sequential-tests.csv`](./sequential-tests.csv):
 
-Compilar versão paralela:
+```shell
+sh run-sequential-tests.sh 5
+```
+```shell
+sh run-sequential-tests.sh 
+```
+
+## Versão paralela
+
+Compilar:
 
 ```shell
 gcc  parms.c  -o parms  -fopenmp
