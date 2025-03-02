@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
                 printFlag = 1;
                 inputVal = atoi(optarg);
                 if (0 <= inputVal) printMaxDepth = inputVal;
-                else printf("Invalid value (%d). Default used.\n", inputVal);
+                else printf("Invalid value (-p %d). Default used.\n", inputVal);
                 break;
             case 'q':
                 if (quietFlag) moreQuietFlag = 1;
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
             case 's':
                 inputVal = atoi(optarg);
                 if (0 <= inputVal) randomSeed = inputVal;
-                else printf("Invalid value (%d). Default used.\n", inputVal);
+                else printf("Invalid value (-s %d). Default used.\n", inputVal);
                 break;
             case ':':                               // when missing positional argument
                 if (optopt == 'p') {
@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
                 }
                 break;
             case '?':
-                fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                fprintf (stderr, "Unknown option (-%c).\n", optopt);
                 print_help();
                 return 1;
             default:
@@ -261,7 +261,7 @@ void print_help(void) {
         "       Sort (in ascending order) a randomly generated array of integers, using Merge-Sort algorithm.\n"
         "\n"
         "       arraySize must be an integer value bigger than 0, and with the maximum value of 1000000 (10^6).\n"
-        "       Using more might overflow (for now).\n"
+        // "       Using more might overflow (for now).\n"
         "\n"
         "OPTIONS\n"
         "       -p [printMaxDepth]\n"

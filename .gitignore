@@ -13,3 +13,7 @@ parms
 seqms
 *.o
 *.out
+
+# Directories
+
+Pictures/**

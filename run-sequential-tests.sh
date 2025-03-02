@@ -7,7 +7,8 @@ SAVE_NAME=sequential-tests.csv
 SAVE_PATH=$SCRIPT_DIRNAME/$SAVE_NAME
 
 PROGRAM_FILE=seqms
-ARG_ARRAY_SIZES=(100 10000 1000000)
+# ARG_ARRAY_SIZES=(100 10000 1000000)
+ARG_ARRAY_SIZES=(10 100 1000 10000 100000 1000000)
 
 
 # ls "$SCRIPT_DIRNAME"
@@ -29,12 +30,12 @@ then
 else
     echo    ""
     echo    "USAGE"
-    echo    "       run-sequential-tests RUN_REPETITIONS"
+    echo    "       run-sequential-tests.sh RUN_REPETITIONS"
     echo    ""
     echo    "DESCRIPTION"
     echo    "       Runs seqms repeatedly and stores the results in sequential-tests.csv."
     echo    ""
-    echo    "       For each of the arraySize 100, 10000 and 1000000; runs seqms RUN_REPETITIONS times."
+    echo    "       For each of the arraySize 10, 100, 1000, 10000, 100000 and 1000000; runs seqms RUN_REPETITIONS times."
     echo    "       RUN_REPETITIONS must be an integer value bigger than 0."
     echo    "       The time saved is in milliseconds."
     echo    ""
@@ -49,7 +50,8 @@ echo "$SAVE_HEADER" > "$SAVE_PATH"
 
 # Saving some data
 RUN_INDEX=1;
-for s in ${ARG_ARRAY_SIZES[@]}; do
+for s in ${ARG_ARRAY_SIZES[@]}
+do
 
     for ((i = 1; i < $RUN_REPETITIONS+1; i++))
     do

@@ -20,3 +20,7 @@ $$
 Each `int` takes 4 bytes in this machine. More than 2094534 values in a array overflows the stack. Also, a billion values would take 4 gigabytes.
 
 ---
+
+The number of nested threads levels is (also) $\lceil \log_2{n} \rceil$, for $n$ threads.
+
+---
