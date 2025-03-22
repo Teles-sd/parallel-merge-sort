@@ -8,7 +8,8 @@ SAVE_PATH=$SCRIPT_DIRNAME/$SAVE_NAME
 
 PROGRAM_FILE=parms
 ARG_ARRAY_SIZES=(10 100 1000 10000 100000 1000000)
-ARG_THREAD_NUMS=(2 4 6 8 12)
+# ARG_THREAD_NUMS=(2 4 6 8 12)
+ARG_THREAD_NUMS=(2 4 8)
 
 # ls "$SCRIPT_DIRNAME"
 # echo "'$SCRIPT_DIRNAME'"
@@ -68,7 +69,7 @@ do
                 # echo "$i,$("$SCRIPT_DIRNAME/$PROGRAM_FILE" 10 -qqm)"
                 # echo "$i,$("$SCRIPT_DIRNAME/$PROGRAM_FILE" 1000000 -qqm)"
                 # echo "$RUN_INDEX,$s,$("$SCRIPT_DIRNAME/$PROGRAM_FILE" $s -qqm)"
-                echo "$RUN_INDEX,$n,$s,$("$SCRIPT_DIRNAME/$PROGRAM_FILE" $s -qqm)" | tee --append "$SAVE_PATH"
+                echo "$RUN_INDEX,$n,$s,$("$SCRIPT_DIRNAME/$PROGRAM_FILE" $s -n $n -qqm)" | tee --append "$SAVE_PATH"
 
                 ((RUN_INDEX+=1))
             done
