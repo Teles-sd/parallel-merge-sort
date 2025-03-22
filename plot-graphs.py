@@ -65,18 +65,18 @@ ax.set_title("Tempo em escala linear")
 lg.set_title("Tempo em escala logarítmica")
 
 for nThreads,format in zip(x_numThreads, [".--k", "*--r", "2--y", "s--g", "p--b", "o--m"]):
-    ax.errorbar(x_arraySizes[3:], y_timeMean_byNumThreads[nThreads][3:], yerr=y_timeStd_byNumThreads[nThreads][3:], fmt=format, label=f"{nThreads} threads", capsize=6)
-    lg.errorbar(x_arraySizes[:3], y_timeMean_byNumThreads[nThreads][:3], yerr=y_timeStd_byNumThreads[nThreads][:3], fmt=format, label=f"{nThreads} threads", capsize=6)
+    ax.errorbar(x_arraySizes[3:], y_timeMean_byNumThreads[nThreads][3:], yerr=y_timeStd_byNumThreads[nThreads][3:], fmt=format, lw=2, label=f"{nThreads} threads", capsize=7)
+    lg.errorbar(x_arraySizes[:3], y_timeMean_byNumThreads[nThreads][:3], yerr=y_timeStd_byNumThreads[nThreads][:3], fmt=format, lw=2, label=f"{nThreads} threads", capsize=7)
 
+
+lg.set_ylabel("Tempo (milissegundos)")
+lg.set_yscale('log')
+lg.set_yticks(y_tickLabels_log, labels=np.round(y_tickLabels_log, decimals=4))
 
 lg.set_xlabel("Tamanho do Array")
 lg.set_xscale('log')
 lg.set_xticks(x_tickLabels_log, labels=x_tickLabels_log)
 lg.tick_params(axis="x", rotation=30)
-
-lg.set_ylabel("Tempo (milissegundos)")
-lg.set_yscale('log')
-lg.set_yticks(y_tickLabels_log, labels=np.round(y_tickLabels_log, decimals=4))
 
 ax.set_xlabel("Tamanho do Array")
 ax.set_xscale('log')
@@ -91,6 +91,37 @@ lg.grid()
 
 ax.legend()
 lg.legend()
+
+fig.tight_layout()
+fig.savefig(f"{os.path.join(picSaveDir, figName)}.png")
+
+
+
+
+# Separating tick labels that will be displayed linearly and logarithmically
+y_tickLabels_lin = np.concatenate( [arr for arr in y_timeMean_byNumThreads.values()] )
+
+
+# Figure: time vs threads
+figName = "threads-time"
+(fig, ax) = plt.subplots(1, 1, facecolor = 'w', figsize=(13,7))
+
+fig.suptitle(f"Tempo de Execução: Média e Desvio Padrão ({numExecutions} execuções)")
+
+for size,fmtString in zip(x_arraySizes, [".--r", "*--y", "2--g", "s--c", "p--b", "o--m"]):
+    ax.errorbar(x_numThreads, y_timeMean_byArraySizes[size], yerr=y_timeStd_byArraySizes[size], fmt=fmtString, lw=2.7, label=f"Tamanho do Array: {size}", capsize=8)
+
+
+ax.set_ylabel("Tempo (milissegundos)")
+ax.set_yticks(y_tickLabels_lin, labels=np.round(y_tickLabels_lin, decimals=4))
+
+ax.set_xlabel("Threads")
+# ax.set_xticks(x_numThreads, labels=x_numThreads)
+ax.set_xticks(x_numThreads)
+
+
+ax.grid()
+ax.legend()
 
 fig.tight_layout()
 fig.savefig(f"{os.path.join(picSaveDir, figName)}.png")
