@@ -5,9 +5,11 @@
 
 - [x] Implementação sequencial ([seqms.c](./seqms.c)).
 - [x] Implementação paralela ([parms.c](./parms.c)).
+- [ ] Implementação distribuída ([parms.c](./disms.c)).
 - [ ] Testar métricas de desempenho com 1, 2, 4, 8 e 12 _threads_ (se disponíveis no sistema).
   - [ ] _Speedup_, eficiência e desempenho.
   - [x] Média de 5+ execuções para cada medida.
+- [ ] Validar os resultados (verificar automaticamente se ordenado).
 
 ## Uso
 
@@ -16,11 +18,29 @@ Rodar todos os testes e gerar os gráficos:
 ```shell
 gcc  seqms.c  -o seqms  -fopenmp
 gcc  parms.c  -o parms  -fopenmp
-sh run-sequential-tests.sh  10
-sh run-parallel-tests.sh    10
+bash run-sequential-tests.sh  20
+bash run-parallel-tests.sh    20
 mkdir -p Pictures
-py plot-graphs.py
+python3 plot-graphs.py
 ```
+
+Ou (equivalente):
+
+```shell
+bash run-all.sh 20
+```
+
+To run the alternative version:
+
+```shell
+gcc  seqms.c  -o seqms  -fopenmp
+gcc  Alternative/parms_explicit.c  -o parms  -fopenmp
+bash run-sequential-tests.sh  20
+bash run-parallel-tests.sh    20
+mkdir -p Pictures
+python3 plot-graphs.py
+```
+
 
 ## Versão sequencial
 
