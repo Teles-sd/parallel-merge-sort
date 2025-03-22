@@ -4,120 +4,87 @@ import matplotlib.pyplot as plt
 
 import os
 
-# Directory of the script being run
+# Directories: of the script being run and where the pictures are saved.
 scriptDir = os.path.dirname(os.path.abspath(__file__))
 picSaveDir = os.path.join(scriptDir, "Pictures")
-# print(picSaveDir)
 
-sequentialCsvFilename = "sequential-tests.csv"
-parallelCsvFilename = "parallel-tests.csv"
+# CSV files
+sequentialCSVFilename = "sequential-tests.csv"
+parallelCSVFilename = "parallel-tests.csv"
 
-sequentialCsvPath = os.path.join(scriptDir, sequentialCsvFilename)
-parallelCsvPath = os.path.join(scriptDir, parallelCsvFilename)
+sequentialCSVPath = os.path.join(scriptDir, sequentialCSVFilename)
+parallelCSVPath = os.path.join(scriptDir, parallelCSVFilename)
 
-if os.path.isfile(sequentialCsvPath):
-    # print("Yay 1")
-    dfSeq = pd.read_csv(sequentialCsvPath, index_col='Run')
+# Data
+if os.path.isfile(sequentialCSVPath) and os.path.isfile(parallelCSVFilename):
 
-    # dfSeq.info()
-    # print(dfSeq)
-    # print(dfSeq.head())
-
-    # print(dfSeq["Array_size"].dtype)
-    arraySizes = dfSeq["Array_size"].unique()
-    timeMean = np.zeros(len(arraySizes), dtype=dfSeq["Time_ms"].dtype)
-    timeStd  = np.zeros(len(arraySizes), dtype=dfSeq["Time_ms"].dtype)
-    # print(arraySizes)
-    # print(timeMean)
-
-    for i in range(len(arraySizes)):
-        # print(i)
-        # print(arraySizes[i])
-        # print(dfSeq[dfSeq["Array_size"] == arraySizes[i]]["Time_ms"].mean())
-        timeMean[i] = dfSeq[dfSeq["Array_size"] == arraySizes[i]]["Time_ms"].mean()
-        timeStd[i]  = dfSeq[dfSeq["Array_size"] == arraySizes[i]]["Time_ms"].std()
-
-    # print(arraySizes.dtype)
-    # print(pd.DataFrame([arraySizes,timeMean,timeStd]))
-
-if os.path.isfile(parallelCsvFilename):
-    # print("Yay 2")
-    dfPar = pd.read_csv(parallelCsvFilename, index_col='Run')
-
-    numThreads = dfPar["Num_threads"].unique()
-
-    arraySizesParallel = dfPar["Array_size"].unique()
-    timeMeanParallel = {t:np.zeros(len(arraySizesParallel), dtype=dfPar["Time_ms"].dtype)    for t in numThreads}
-    timeStdParallel  = {t:np.zeros(len(arraySizesParallel), dtype=dfPar["Time_ms"].dtype)    for t in numThreads}
-
-    for n in numThreads:
-
-        for i in range(len(arraySizesParallel)):
-
-            timeMeanParallel[n][i] = dfPar[ (dfPar["Num_threads"] == n) & (dfPar["Array_size"] == arraySizesParallel[i]) ]["Time_ms"].mean()
-            timeStdParallel[n][i]  = dfPar[ (dfPar["Num_threads"] == n) & (dfPar["Array_size"] == arraySizesParallel[i]) ]["Time_ms"].std()
+    df_sequential = pd.read_csv(sequentialCSVPath, index_col='Run')
+    df_parallel = pd.read_csv(parallelCSVFilename, index_col='Run')
     
-    # print(timeMeanParallel)
-    # print(timeStdParallel)
+    df_sequential["Num_threads"] = 1
+    
+    df_all = pd.concat([df_parallel, df_sequential], ignore_index=True)
+    time_dtype = df_all["Time_ms"].dtype
+
+    df_group = df_all.groupby(["Num_threads", "Array_size"])
+    df_group_mean = df_group.mean()
+    df_group_std = df_group.std()
+    numExecutions = df_group.count()["Time_ms"].iloc[0]
+
+    x_arraySizes = df_group_mean.index.get_level_values("Array_size").unique().to_numpy(copy=True)
+    x_numThreads = df_group_mean.index.get_level_values("Num_threads").unique().to_numpy(copy=True)
+
+    y_timeMean_byNumThreads = {int(threads):df_group_mean.xs(threads, level="Num_threads").to_numpy(copy=True).flatten()  for threads in x_numThreads}
+    y_timeStd_byNumThreads  = {int(threads):df_group_std.xs(threads, level="Num_threads").to_numpy(copy=True).flatten()   for threads in x_numThreads}
+    
+    y_timeMean_byArraySizes = {int(size):df_group_mean.xs(size, level="Array_size").to_numpy(copy=True).flatten()     for size in x_arraySizes}
+    y_timeStd_byArraySizes  = {int(size):df_group_std.xs(size, level="Array_size").to_numpy(copy=True).flatten()      for size in x_arraySizes}
+    
+else:
+    print("Something's missing.")
+    exit()
 
 
-# print(pd.DataFrame([arraySizes,timeMean,timeStd]))
 
-# timeMeanAll = timeMean[:]
-timeMeanAll_lin = timeMean[3:]
-timeMeanAll_log = timeMean[:3]
+# Separating tick labels that will be displayed linearly and logarithmically
+x_tickLabels_lin = x_arraySizes[3:]
+x_tickLabels_log = x_arraySizes[:3]
 
-# for array in timeMeanParallel.values():
-# for array in list(timeMeanParallel.values())[1:]:         # not including first (2 threads), cus too close
-#     timeMeanAll = np.append(timeMeanAll, array)
-for array in list(timeMeanParallel.values()):
-    timeMeanAll_lin = np.append(timeMeanAll_lin, array[3:])
-    timeMeanAll_log = np.append(timeMeanAll_log, array[:3])
+y_tickLabels_lin = np.concatenate( [arr[3:] for arr in y_timeMean_byNumThreads.values()] )
+y_tickLabels_log = np.concatenate( [arr[:3] for arr in y_timeMean_byNumThreads.values()] )
 
-# timeMeanAll = sorted(timeMeanAll)
 
-# with plt.style.context('default'):
 
-# (fig, (ax, lg)) = plt.subplots(1, 2, facecolor = 'w', figsize=(25,10))
-# (fig, (lg, ax)) = plt.subplots(1, 2, facecolor = 'w', figsize=(25,10))
+# Figure: time vs size
+figName = "size-time"
 (fig, (lg, ax)) = plt.subplots(1, 2, facecolor = 'w', figsize=(15,7))
 
-fig.suptitle("Média e Desvio Padrão do tempo de execução")
+fig.suptitle(f"Tempo de Execução: Média e Desvio Padrão ({numExecutions} execuções)")
 
 ax.set_title("Tempo em escala linear")
 lg.set_title("Tempo em escala logarítmica")
 
-# ax.plot(arraySizes, timeMean, ".--k",label="1 proc")
-# ax.errorbar(arraySizes, timeMean, yerr=timeStd, fmt=".--k", label="1 thread", capsize=6)
-# lg.errorbar(arraySizes, timeMean, yerr=timeStd, fmt=".--k", label="1 thread", capsize=6)
-ax.errorbar(arraySizes[3:], timeMean[3:], yerr=timeStd[3:], fmt=".--k", label="1 thread", capsize=6)
-lg.errorbar(arraySizes[:3], timeMean[:3], yerr=timeStd[:3], fmt=".--k", label="1 thread", capsize=6)
+for nThreads,format in zip(x_numThreads, [".--k", "*--r", "2--y", "s--g", "p--b", "o--m"]):
+    ax.errorbar(x_arraySizes[3:], y_timeMean_byNumThreads[nThreads][3:], yerr=y_timeStd_byNumThreads[nThreads][3:], fmt=format, label=f"{nThreads} threads", capsize=6)
+    lg.errorbar(x_arraySizes[:3], y_timeMean_byNumThreads[nThreads][:3], yerr=y_timeStd_byNumThreads[nThreads][:3], fmt=format, label=f"{nThreads} threads", capsize=6)
 
-for n,f in zip(numThreads, ["*--r","2--y","s--g","p--b","o--m"]):
-    ax.errorbar(arraySizesParallel[3:], timeMeanParallel[n][3:], yerr=timeStdParallel[n][3:], fmt=f, label=f"{n} threads", capsize=6)
-    lg.errorbar(arraySizesParallel[:3], timeMeanParallel[n][:3], yerr=timeStdParallel[n][:3], fmt=f, label=f"{n} threads", capsize=6)
 
-ax.set_xscale('log')
-lg.set_xscale('log')
-ax.set_xticks(arraySizes[3:], labels=arraySizes[3:])
-lg.set_xticks(arraySizes[:3], labels=arraySizes[:3])
-ax.tick_params(axis="x", rotation=30)
-lg.tick_params(axis="x", rotation=30)
-# ax.set_xlabel("Tamanho do Array (escala logarítmica)")
-# lg.set_xlabel("Tamanho do Array (escala logarítmica)")
-ax.set_xlabel("Tamanho do Array")
 lg.set_xlabel("Tamanho do Array")
+lg.set_xscale('log')
+lg.set_xticks(x_tickLabels_log, labels=x_tickLabels_log)
+lg.tick_params(axis="x", rotation=30)
 
-lg.set_yscale('log')
-# ax.set_yticks(timeMeanAll, labels=np.round(timeMeanAll, decimals=4))
-# lg.set_yticks(timeMeanAll, labels=np.round(timeMeanAll, decimals=4))
-ax.set_yticks(timeMeanAll_lin, labels=np.round(timeMeanAll_lin, decimals=4))
-lg.set_yticks(timeMeanAll_log, labels=np.round(timeMeanAll_log, decimals=4))
-# ax.set_yticks(timeMean, labels=np.round(timeMean, decimals=4))
-# ax.set_yticks(timeMeanAll, labels=np.round(timeMeanAll, decimals=4))
-# ax.set_ylabel("Tempo (milissegundos)")
 lg.set_ylabel("Tempo (milissegundos)")
-# lg.set_ylabel("Tempo (milissegundos, escala logarítmica)")
+lg.set_yscale('log')
+lg.set_yticks(y_tickLabels_log, labels=np.round(y_tickLabels_log, decimals=4))
+
+ax.set_xlabel("Tamanho do Array")
+ax.set_xscale('log')
+ax.set_xticks(x_tickLabels_lin, labels=x_tickLabels_lin)
+ax.tick_params(axis="x", rotation=30)
+
+ax.set_yticks(y_tickLabels_lin, labels=np.round(y_tickLabels_lin, decimals=4))
+
 
 ax.grid()
 lg.grid()
@@ -126,19 +93,4 @@ ax.legend()
 lg.legend()
 
 fig.tight_layout()
-
-figName = "size-time"
 fig.savefig(f"{os.path.join(picSaveDir, figName)}.png")
-# fig.savefig(f"{os.path.join(picSaveDir, figName)}.jpeg")
-
-
-# ax.set_ylabel("Tempo (milissegundos, escala logarítmica)")
-
-# figName = "size-time-log"
-# fig.savefig(f"{os.path.join(picSaveDir, figName)}.png")
-# fig.savefig(f"{os.path.join(picSaveDir, figName)}.jpeg")
-
-
-# fig.savefig(f"{os.path.join(picSaveDir, figName)}.png", dpi=300)
-# fig.savefig(f"{os.path.join(picSaveDir, figName)}.jpeg", dpi=300)
-# plt.show()
