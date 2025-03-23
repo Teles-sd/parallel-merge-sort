@@ -1,0 +1,8 @@
+
+# Git Ignore patterns
+
+# Compiled files
+
+parms_explicit
+*.o
+*.out

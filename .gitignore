@@ -9,8 +9,9 @@ OtherNotes.md
 
 # Compiled files
 
-parms
 seqms
+parms
+mpims
 *.o
 *.out
 
