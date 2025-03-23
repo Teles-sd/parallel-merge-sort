@@ -1,29 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>     // atoi, rand
 #include <unistd.h>     // getopt
-#include <omp.h>        // omp_get_wtime
+#include <omp.h>
 
 // Sort (in ascending order) a randomly generated array of integers, using Merge-Sort algorithm.
 
 void arrMerge();
 void arrDivide();
-void arrDivideParallel();
 void mergeSort();
 
 void print_help(void);
 
 void displayArray();
 
-void updateDepth();
-void updateDepthParallel(void);
-void printDepth();
 void displaySubarray();
 void displayTwoSubarrays();
 void debugPrintGlobalFlags(void);
 
 int printFlag = 0;
 int printMaxDepth;
-int* curDepthParallel;
 int maxDepth = 0;
 
 int quietFlag = 0;
@@ -91,8 +86,17 @@ int main(int argc, char* argv[]) {
                 break;
             case 'n':
                 inputVal = atoi(optarg);
-                if (2 <= inputVal && inputVal <= availProcessorsNum) numThreads = inputVal;
-                else printf("Invalid value (-n %d), min: 2, max: %d. Default used.\n", inputVal, availProcessorsNum);
+                switch (inputVal) {
+                    case 2:
+                    case 4:
+                    case 8:
+                        if (2 <= inputVal && inputVal <= availProcessorsNum) numThreads = inputVal;
+                        else printf("Invalid value (-n %d), min: 2, max: %d. Default used.\n", inputVal, availProcessorsNum);
+                        break;
+                    default:
+                        printf("Invalid value (-n %d). Code limitation. Default used.\n", inputVal);
+                        break;
+                }
                 break;
             case 'N':
                 inputVal = atoi(optarg);
@@ -134,15 +138,10 @@ int main(int argc, char* argv[]) {
     
     // Allocating memory and creating array
     int* array = malloc(arraySize * sizeof(int));
-    curDepthParallel = malloc(numThreads * sizeof(int));
 
     // Check if malloc was successful
     if (array == NULL) { 
         printf("Memory allocation failed! (array)\n"); 
-        return 1;
-    }
-    if (curDepthParallel == NULL) { 
-        printf("Memory allocation failed! (curDepthParallel)\n"); 
         return 1;
     }
 
@@ -152,7 +151,6 @@ int main(int argc, char* argv[]) {
         printf("\nArray before randomizing:\n");
         displayArray(array, arraySize);
     }
-    for (int i=0; i<numThreads; i++) curDepthParallel[i] = 0;
     
     // Randomizing
     srand (randomSeed);
@@ -202,7 +200,6 @@ int main(int argc, char* argv[]) {
 
     // Freeing allocated memory
     free(array);
-    free(curDepthParallel);
     
     return 0;
 }
@@ -368,8 +365,8 @@ void print_help(void) {
         // "               Overriden by -q flag.\n"
         // "\n"
         "       -n numThreads\n"
-        "               Defines the number of threads to be used (must integer, bigger than 1). Limited by the number\n"
-        "               of processors available to the device. Default is 2.\n"
+        "               Defines the number of threads to be used; must be even (code limitation) integer, bigger than 1.\n"
+        "               Limited by the number of processors available to the device. Default is 2.\n"
         "\n"
         "       -N numThreads\n"
         "               If numThreads is bigger than 1 and smaller than the number of processors available, returns 0.\n"
@@ -426,46 +423,6 @@ void displayArray(int *arr, int arrSize) {
     printf("]\n");
 }
 
-void updateDepth(int d) {
-    // d:
-    // 1 for increase
-    // 0 for decrease
-
-    if (quietFlag || !printFlag) return;
-
-    #pragma omp critical(updating)
-    {
-        if (d) {
-            curDepthParallel[omp_get_thread_num()]++;
-            if (curDepthParallel[omp_get_thread_num()] > maxDepth) maxDepth = curDepthParallel[omp_get_thread_num()];
-        } else {
-            curDepthParallel[omp_get_thread_num()]--;
-        }
-    }
-}
-
-void updateDepthParallel(void) {
-    // d:
-    // 1 for increase
-    // 0 for decrease
-
-    if (quietFlag || !printFlag) return;
-    
-    #pragma omp critical(updating)
-    {
-        curDepthParallel[omp_get_thread_num()] = omp_get_active_level();
-        if (curDepthParallel[omp_get_thread_num()] > maxDepth) maxDepth = curDepthParallel[omp_get_thread_num()];
-    }
-}
-
-void printDepth(int d) {
-    // d:
-    // 1 for increase
-    // 0 for decrease
-
-    if (printFlag && !quietFlag && (curDepthParallel[omp_get_thread_num()] <= printMaxDepth)) printf("\nCurrent depth: %c %d (ThreadId %d)\n", d?'v':'^', curDepthParallel[omp_get_thread_num()], omp_get_thread_num());
-}
-
 void displaySubarray(int arr[], int indexL, int indexR, char* name) {
     
     // name should have at most 8 chars
@@ -473,7 +430,7 @@ void displaySubarray(int arr[], int indexL, int indexR, char* name) {
     // for(len = 0; name[len] != '\0'; len++);
     // if (len > 8) name = "subarray";
 
-    if (quietFlag || !printFlag || !(curDepthParallel[omp_get_thread_num()] <= printMaxDepth)) return;
+    if (quietFlag || !printFlag) return;
     
     int counter;
     int arrSize;
