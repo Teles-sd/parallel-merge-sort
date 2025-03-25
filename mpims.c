@@ -233,6 +233,9 @@ void mergeSort(int *arr, int arrSize) {
     int sliceIndMid;
     int sliceIndEnd;
 
+    // The mpi function MPI_Gather won't work because sometimes the sendcount and recvcount would have different sizes.
+    // Using MPI_Send and MPI_Recv for each process instead.
+    // Haven't changed the variables names.
     int *gatherBuffer;
     int gatherCount;
     int gatherIndex;
@@ -268,34 +271,24 @@ void mergeSort(int *arr, int arrSize) {
             
             // Everyone gets to work
             arrDivide(arr, sliceIndStr, sliceIndEnd);
-            
-            // The mpi function MPI_Gather won't work because sometimes the sendcount and recvcount would have different sizes.
-
-            // // Setting the gather parameters based on each process work slice
-            // gatherBuffer = &arr[sliceIndStr];
-            // gatherCount = sliceIndEnd - sliceIndStr + 1;
-            
-            // // Root process gather the results
-            // MPI_Gather(gatherBuffer, gatherCount, MPI_INT, arr, gatherCount, MPI_INT, mpiRootRank, MPI_COMM_WORLD);
 
             if (mpiMyRank == mpiRootRank) {
 
                 gatherIndex = sliceIndEnd + 1;
 
-                // Root process gather the results
+                // Root process gather the results IN ORDER
                 for (int mpiRank=1; mpiRank<mpiCommSize; mpiRank++) {
 
                     // Receive the size of the buffer from the other processes
-                    // int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status)
                     MPI_Recv(&gatherCount, 1, MPI_INT, mpiRank, mpiTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                     
                     // Setting the gather parameters based on each process work slice
                     gatherBuffer = &arr[gatherIndex];
                     
                     // Receive sorted slice of the array from the other processes
-                    // MPI_Send(gatherBuffer, gatherCount, MPI_INT, mpiRootRank, mpiTag, MPI_COMM_WORLD);
                     MPI_Recv(gatherBuffer, gatherCount, MPI_INT, mpiRank, mpiTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+                    // Update index for next batch
                     gatherIndex += gatherCount;
                 }
 
@@ -306,13 +299,11 @@ void mergeSort(int *arr, int arrSize) {
                 gatherCount = sliceIndEnd - sliceIndStr + 1;
 
                 // Send the size of its buffer to the root process
-                // int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
                 MPI_Send(&gatherCount, 1, MPI_INT, mpiRootRank, mpiTag, MPI_COMM_WORLD);
 
                 // Send its sorted slice of the array to the root process
                 MPI_Send(gatherBuffer, gatherCount, MPI_INT, mpiRootRank, mpiTag, MPI_COMM_WORLD);
             }
-
             
             // Tasks only for root process
             if (mpiMyRank == mpiRootRank) {
@@ -362,20 +353,44 @@ void mergeSort(int *arr, int arrSize) {
             
             // Everyone gets to work
             arrDivide(arr, sliceIndStr, sliceIndEnd);
-            
-            // Setting the gather parameters based on each process work slice
-            gatherBuffer = &arr[sliceIndStr];
-            gatherCount = sliceIndEnd - sliceIndStr + 1;
-            
-            // Root process gather the results
-            MPI_Gather(gatherBuffer, gatherCount, MPI_INT, arr, gatherCount, MPI_INT, mpiRootRank, MPI_COMM_WORLD);
+
+            if (mpiMyRank == mpiRootRank) {
+
+                gatherIndex = sliceIndEnd + 1;
+
+                // Root process gather the results IN ORDER
+                for (int mpiRank=1; mpiRank<mpiCommSize; mpiRank++) {
+
+                    // Receive the size of the buffer from the other processes
+                    MPI_Recv(&gatherCount, 1, MPI_INT, mpiRank, mpiTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    
+                    // Setting the gather parameters based on each process work slice
+                    gatherBuffer = &arr[gatherIndex];
+                    
+                    // Receive sorted slice of the array from the other processes
+                    MPI_Recv(gatherBuffer, gatherCount, MPI_INT, mpiRank, mpiTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+                    // Update index for next batch
+                    gatherIndex += gatherCount;
+                }
+
+            } else {
+                
+                // Setting the gather parameters based on each process work slice
+                gatherBuffer = &arr[sliceIndStr];
+                gatherCount = sliceIndEnd - sliceIndStr + 1;
+
+                // Send the size of its buffer to the root process
+                MPI_Send(&gatherCount, 1, MPI_INT, mpiRootRank, mpiTag, MPI_COMM_WORLD);
+
+                // Send its sorted slice of the array to the root process
+                MPI_Send(gatherBuffer, gatherCount, MPI_INT, mpiRootRank, mpiTag, MPI_COMM_WORLD);
+            }
 
             // Splitting the communicator into smaller communicator for the remaining work latter
             MPI_Comm mpiShorterComm;
             int color = (mpiMyRank <= 1) ? 0 : MPI_UNDEFINED;
             MPI_Comm_split(MPI_COMM_WORLD, color, mpiMyRank, &mpiShorterComm);
-            
-            printf("\nHello, World from rank %d out of %d processors\n", mpiMyRank, mpiCommSize);
 
             // All other processes will not be necessary anymore
             if ( !(mpiMyRank <= 1) ) break;
@@ -405,13 +420,42 @@ void mergeSort(int *arr, int arrSize) {
 
             // Everyone gets to work
             arrMerge(arr, sliceIndStr, sliceIndMid, sliceIndEnd);
-            
-            // Setting the gather parameters based on each process work slice
-            gatherBuffer = &arr[sliceIndStr];
-            gatherCount = sliceIndEnd - sliceIndStr + 1;
-            
-            // Root process gather the results
-            MPI_Gather(gatherBuffer, gatherCount, MPI_INT, arr, gatherCount, MPI_INT, mpiRootRank, mpiShorterComm);
+
+            if (mpiMyRank == mpiRootRank) {
+
+                gatherIndex = sliceIndEnd + 1;
+
+                int mpiShorterCommSize;
+                MPI_Comm_size(mpiShorterComm, &mpiShorterCommSize);
+
+                // Root process gather the results IN ORDER
+                for (int mpiRank=1; mpiRank<mpiShorterCommSize; mpiRank++) {
+
+                    // Receive the size of the buffer from the other processes
+                    MPI_Recv(&gatherCount, 1, MPI_INT, mpiRank, mpiTag, mpiShorterComm, MPI_STATUS_IGNORE);
+                    
+                    // Setting the gather parameters based on each process work slice
+                    gatherBuffer = &arr[gatherIndex];
+                    
+                    // Receive sorted slice of the array from the other processes
+                    MPI_Recv(gatherBuffer, gatherCount, MPI_INT, mpiRank, mpiTag, mpiShorterComm, MPI_STATUS_IGNORE);
+
+                    // Update index for next batch
+                    gatherIndex += gatherCount;
+                }
+
+            } else {
+                
+                // Setting the gather parameters based on each process work slice
+                gatherBuffer = &arr[sliceIndStr];
+                gatherCount = sliceIndEnd - sliceIndStr + 1;
+
+                // Send the size of its buffer to the root process
+                MPI_Send(&gatherCount, 1, MPI_INT, mpiRootRank, mpiTag, mpiShorterComm);
+
+                // Send its sorted slice of the array to the root process
+                MPI_Send(gatherBuffer, gatherCount, MPI_INT, mpiRootRank, mpiTag, mpiShorterComm);
+            }
             
             // Tasks only for root process
             if (mpiMyRank == mpiRootRank) {
@@ -502,13 +546,39 @@ void mergeSort(int *arr, int arrSize) {
             
             // Everyone gets to work
             arrDivide(arr, sliceIndStr, sliceIndEnd);
-            
-            // Setting the gather parameters based on each process work slice
-            gatherBuffer = &arr[sliceIndStr];
-            gatherCount = sliceIndEnd - sliceIndStr + 1;
-            
-            // Root process gather the results
-            MPI_Gather(gatherBuffer, gatherCount, MPI_INT, arr, gatherCount, MPI_INT, mpiRootRank, MPI_COMM_WORLD);
+
+            if (mpiMyRank == mpiRootRank) {
+
+                gatherIndex = sliceIndEnd + 1;
+
+                // Root process gather the results IN ORDER
+                for (int mpiRank=1; mpiRank<mpiCommSize; mpiRank++) {
+
+                    // Receive the size of the buffer from the other processes
+                    MPI_Recv(&gatherCount, 1, MPI_INT, mpiRank, mpiTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                    
+                    // Setting the gather parameters based on each process work slice
+                    gatherBuffer = &arr[gatherIndex];
+                    
+                    // Receive sorted slice of the array from the other processes
+                    MPI_Recv(gatherBuffer, gatherCount, MPI_INT, mpiRank, mpiTag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+                    // Update index for next batch
+                    gatherIndex += gatherCount;
+                }
+
+            } else {
+                
+                // Setting the gather parameters based on each process work slice
+                gatherBuffer = &arr[sliceIndStr];
+                gatherCount = sliceIndEnd - sliceIndStr + 1;
+
+                // Send the size of its buffer to the root process
+                MPI_Send(&gatherCount, 1, MPI_INT, mpiRootRank, mpiTag, MPI_COMM_WORLD);
+
+                // Send its sorted slice of the array to the root process
+                MPI_Send(gatherBuffer, gatherCount, MPI_INT, mpiRootRank, mpiTag, MPI_COMM_WORLD);
+            }
 
             // Splitting the communicator into smaller communicator for the remaining work latter
             MPI_Comm mpiShorterComm;
@@ -555,13 +625,42 @@ void mergeSort(int *arr, int arrSize) {
 
             // Everyone gets to work
             arrMerge(arr, sliceIndStr, sliceIndMid, sliceIndEnd);
-            
-            // Setting the gather parameters based on each process work slice
-            gatherBuffer = &arr[sliceIndStr];
-            gatherCount = sliceIndEnd - sliceIndStr + 1;
-            
-            // Root process gather the results
-            MPI_Gather(gatherBuffer, gatherCount, MPI_INT, arr, gatherCount, MPI_INT, mpiRootRank, mpiShorterComm);
+
+            if (mpiMyRank == mpiRootRank) {
+
+                gatherIndex = sliceIndEnd + 1;
+
+                int mpiShorterCommSize;
+                MPI_Comm_size(mpiShorterComm, &mpiShorterCommSize);
+
+                // Root process gather the results IN ORDER
+                for (int mpiRank=1; mpiRank<mpiShorterCommSize; mpiRank++) {
+
+                    // Receive the size of the buffer from the other processes
+                    MPI_Recv(&gatherCount, 1, MPI_INT, mpiRank, mpiTag, mpiShorterComm, MPI_STATUS_IGNORE);
+                    
+                    // Setting the gather parameters based on each process work slice
+                    gatherBuffer = &arr[gatherIndex];
+                    
+                    // Receive sorted slice of the array from the other processes
+                    MPI_Recv(gatherBuffer, gatherCount, MPI_INT, mpiRank, mpiTag, mpiShorterComm, MPI_STATUS_IGNORE);
+
+                    // Update index for next batch
+                    gatherIndex += gatherCount;
+                }
+
+            } else {
+                
+                // Setting the gather parameters based on each process work slice
+                gatherBuffer = &arr[sliceIndStr];
+                gatherCount = sliceIndEnd - sliceIndStr + 1;
+
+                // Send the size of its buffer to the root process
+                MPI_Send(&gatherCount, 1, MPI_INT, mpiRootRank, mpiTag, mpiShorterComm);
+
+                // Send its sorted slice of the array to the root process
+                MPI_Send(gatherBuffer, gatherCount, MPI_INT, mpiRootRank, mpiTag, mpiShorterComm);
+            }
 
             // Splitting the communicator into smaller communicator for the remaining work latter
             color = (mpiMyRank <= 1) ? 0 : MPI_UNDEFINED;
@@ -599,12 +698,41 @@ void mergeSort(int *arr, int arrSize) {
             // Everyone gets to work
             arrMerge(arr, sliceIndStr, sliceIndMid, sliceIndEnd);
 
-            // Setting the gather parameters based on each process work slice
-            gatherBuffer = &arr[sliceIndStr];
-            gatherCount = sliceIndEnd - sliceIndStr + 1;
-            
-            // Root process gather the results
-            MPI_Gather(gatherBuffer, gatherCount, MPI_INT, arr, gatherCount, MPI_INT, mpiRootRank, mpiShorterComm);
+            if (mpiMyRank == mpiRootRank) {
+
+                gatherIndex = sliceIndEnd + 1;
+                
+                int mpiShorterCommSize;
+                MPI_Comm_size(mpiShorterComm, &mpiShorterCommSize);
+
+                // Root process gather the results IN ORDER
+                for (int mpiRank=1; mpiRank<mpiShorterCommSize; mpiRank++) {
+
+                    // Receive the size of the buffer from the other processes
+                    MPI_Recv(&gatherCount, 1, MPI_INT, mpiRank, mpiTag, mpiShorterComm, MPI_STATUS_IGNORE);
+                    
+                    // Setting the gather parameters based on each process work slice
+                    gatherBuffer = &arr[gatherIndex];
+                    
+                    // Receive sorted slice of the array from the other processes
+                    MPI_Recv(gatherBuffer, gatherCount, MPI_INT, mpiRank, mpiTag, mpiShorterComm, MPI_STATUS_IGNORE);
+
+                    // Update index for next batch
+                    gatherIndex += gatherCount;
+                }
+
+            } else {
+                
+                // Setting the gather parameters based on each process work slice
+                gatherBuffer = &arr[sliceIndStr];
+                gatherCount = sliceIndEnd - sliceIndStr + 1;
+
+                // Send the size of its buffer to the root process
+                MPI_Send(&gatherCount, 1, MPI_INT, mpiRootRank, mpiTag, mpiShorterComm);
+
+                // Send its sorted slice of the array to the root process
+                MPI_Send(gatherBuffer, gatherCount, MPI_INT, mpiRootRank, mpiTag, mpiShorterComm);
+            }
             
             // Tasks only for root process
             if (mpiMyRank == mpiRootRank) {

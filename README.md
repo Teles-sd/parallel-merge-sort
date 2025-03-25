@@ -4,91 +4,64 @@
 ## Requisitos da tarefa
 
 - [x] Implementação sequencial ([seqms.c](./seqms.c)).
-- [x] Implementação paralela ([parms.c](./parms.c)).
-- [ ] Implementação distribuída ([parms.c](./disms.c)).
-- [ ] Testar métricas de desempenho com 1, 2, 4, 8 e 12 _threads_ (se disponíveis no sistema).
+- [x] Implementação paralela com OpenMP ([parms.c](./parms.c)).
+- [x] Implementação distribuída com OpenMPI ([mpims.c](./mpims.c)).
+- [ ] Testar métricas de desempenho com 2, 4, 8 _threads_ (se disponíveis no sistema).
   - [ ] _Speedup_, eficiência e desempenho.
   - [x] Média de 5+ execuções para cada medida.
-- [ ] Validar os resultados (verificar automaticamente se ordenado).
+- [x] Validar os resultados (verificar automaticamente se ordenado).
 
-## Uso
+
+## Testes
 
 Rodar todos os testes e gerar os gráficos:
 
 ```shell
-gcc  seqms.c  -o seqms  -fopenmp
-gcc  parms.c  -o parms  -fopenmp
-bash run-sequential-tests.sh  20
-bash run-parallel-tests.sh    20
-mkdir -p Pictures
-python3 plot-graphs.py
+bash run-all.sh 10
 ```
 
-Ou (equivalente):
-
-```shell
-bash run-all.sh 20
-```
-
-To run the alternative version:
-
-```shell
-gcc  seqms.c  -o seqms  -fopenmp
-gcc  Alternative/parms_explicit.c  -o parms  -fopenmp
-bash run-sequential-tests.sh  20
-bash run-parallel-tests.sh    20
-mkdir -p Pictures
-python3 plot-graphs.py
-```
+Para ver outros comandos: [Commands.md](./Commands.md).
 
 
-## Versão sequencial
+## Ferramentas Utilizadas
 
-Compilar (OpenMP necessário pelas funções de temporização):
+[<img src="https://upload.wikimedia.org/wikipedia/commons/1/18/C_Programming_Language.svg" 
+      alt="C Programming Language"
+      height="40"/>][c]
+[<img src="https://upload.wikimedia.org/wikipedia/commons/4/40/OpenMP_logo.svg" 
+      alt="OpenMP"
+      height="40"/>][omp]
+[<img src="https://www.open-mpi.org/images/open-mpi-logo.png" 
+      alt="OpenMPI"
+      width="40"
+      height="40"/>][mpi]
+[<img src="https://www.svgrepo.com/show/353478/bash-icon.svg" 
+      alt="bash"
+      width="40"
+      height="40"/>][bash]
+[<img src="https://www.vectorlogo.zone/logos/python/python-icon.svg" 
+      alt="python"
+      width="40"
+      height="40"/>][python]
 
-```shell
-gcc  seqms.c  -o seqms  -fopenmp
-```
+[c]:https://www.c-language.org/
+[omp]:https://www.openmp.org/
+[mpi]:https://www.open-mpi.org/
+[bash]:https://www.gnu.org/software/bash/
+[python]:https://www.python.org/
 
-Testar:
+- Implementação do algorítimo:
+  - [C][c], versão: `gcc (GCC) 14.2.1 20250207`
+  - [OpenMP][omp], versão: `_OPENMP = '201511'`; Nov 2015: OpenMP 4.5
+  - [OpenMPI][mpi], versão:
+    - `mpicc: Open MPI 5.0.7 (Language: C)`
+    - `mpirun (Open MPI) 5.0.7`
 
-```shell
-./seqms 100
-```
-```shell
-./seqms -h
-```
+- Script para rodar os testes multiplas vezes:
+  - [Bash][bash], versão: `GNU bash, version 5.2.37(1)-release (x86_64-pc-linux-gnu)`
 
-Rodar múltiplos testes usando diferentes tamanhos de vetores e salvando os resultados em [`sequential-tests.csv`](./sequential-tests.csv):
+- Gráficos: [Python][python], versão: `Python 3.13.2`
+  - Numpy
+  - Pandas
+  - Matplotlib
 
-```shell
-sh run-sequential-tests.sh 5
-```
-
-## Versão paralela
-
-Compilar:
-
-```shell
-gcc  parms.c  -o parms  -fopenmp
-```
-
-Testar:
-
-```shell
-./seqms 100
-```
-```shell
-./seqms -h
-```
-
-Rodar múltiplos testes usando diferentes tamanhos de vetores e salvando os resultados em [`parallel-tests.csv`](./parallel-tests.csv):
-
-```shell
-sh run-parallel-tests.sh 5
-```
-
-## OpenMP
-
-Version: `_OPENMP = '201511'`  
-Nov 2015: OpenMP 4.5
