@@ -1,7 +1,7 @@
-#include <stdio.h>
+#include <stdio.h>      // printf, fprintf
 #include <stdlib.h>     // atoi, rand
 #include <unistd.h>     // getopt
-#include <omp.h>        // omp_get_wtime
+#include <omp.h>
 
 // Sort (in ascending order) a randomly generated array of integers, using Merge-Sort algorithm.
 
@@ -18,10 +18,6 @@ void displaySubarray();
 void displayTwoSubarrays();
 void debugPrintGlobalFlags(void);
 
-int printFlag = 0;
-int printMaxDepth;
-int maxDepth = 0;
-
 int quietFlag = 0;
 int moreQuietFlag = 0;
 
@@ -37,9 +33,6 @@ int main(int argc, char* argv[]) {
     int randomSeed = 42069;
 
     int availProcessorsNum = omp_get_num_procs();
-    printMaxDepth = availProcessorsNum <= 2 ? 1 :
-                    availProcessorsNum <= 4 ? 2 :
-                    availProcessorsNum <= 8 ? 3 : 4;
     
     // No extra command line argument passed
     if (argc == 1) {
@@ -53,18 +46,11 @@ int main(int argc, char* argv[]) {
     // Get flags
     int flag;
     opterr = 0;                                     // getopt() does not print an error message
-    // while ((flag = getopt(argc, argv, ":hp:qtmus:n:N:")) != -1) {
     while ((flag = getopt(argc, argv, ":hqtmus:n:N:")) != -1) {
         switch (flag) {
             case 'h':
                 print_help();
-                return 1;
-            // case 'p':
-            //     printFlag = 1;
-            //     inputVal = atoi(optarg);
-            //     if (0 <= inputVal && inputVal <= printMaxDepth) printMaxDepth = inputVal;
-            //     else printf("Invalid value (-p %d), max: %d. Default used.\n", inputVal, printMaxDepth);
-            //     break;
+                return 0;
             case 'q':
                 if (quietFlag) moreQuietFlag = 1;
                 else quietFlag = 1;
@@ -106,13 +92,8 @@ int main(int argc, char* argv[]) {
                 if (2 <= inputVal && inputVal <= availProcessorsNum) return 0;
                 else return 1;
             case ':':                               // when missing positional argument
-                if (optopt == 'p') {
-                    printFlag = 1;
-                } else {
-                    print_help();
-                    return 1;
-                }
-                break;
+                print_help();
+                return 1;
             case '?':
                 fprintf (stderr, "Unknown option (-%c).\n", optopt);
                 print_help();
@@ -126,7 +107,7 @@ int main(int argc, char* argv[]) {
     // Debug
     // debugPrintGlobalFlags();
 
-    // Array size
+    // Check array size
     if ( !(0 < arraySize && arraySize <= 1000000) ) {
         printf("\nArray size invalid: %d", arraySize);
         printf("\nMinimum array size: 1");
@@ -186,6 +167,17 @@ int main(int argc, char* argv[]) {
     } else {
         if (timeFlag) printf("%f", wtime_taken*timeFlag);
     }
+
+    // Validation
+    int incorrectSort = 0;
+    for (int i=0; i<(arraySize-1); i++) {
+        if (array[i] > array[i+1]) {
+            incorrectSort++;
+        }
+    }
+    if (incorrectSort) {
+        printf("Warning: incorrect sorting. (%d)\n\n", incorrectSort);
+    } else if (!moreQuietFlag) printf("Sorting is correct . (%d)\n\n", incorrectSort);
 
     // Freeing allocated memory
     free(array);
@@ -414,8 +406,6 @@ void mergeSort(int *arr, int arrSize, int numThreads) {
             break;
         }
     }
-    
-    // if (printFlag && !quietFlag) printf("\nMax depth reached: %d\n", maxDepth);
 }
 
 // --------------- MISC FUNCTIONS -------------------
@@ -432,12 +422,6 @@ void print_help(void) {
         "       arraySize must be an integer value bigger than 0, and with the maximum value of 1000000 (10^6).\n"
         "\n"
         "OPTIONS\n"
-        // "       -p [printMaxDepth]\n"
-        // "               Print steps of the sorting process. Sets printMaxDepth if given, which defines how deep into\n"
-        // "               the recurrence it will print the arrays. Must be positive integer, and is restricted by the\n"
-        // "               number of processors available (as after a certain depth behaves as sequential).\n"
-        // "               Overriden by -q flag.\n"
-        // "\n"
         "       -n numThreads\n"
         "               Defines the number of threads to be used; must be even (code limitation) integer, bigger than 1.\n"
         "               Limited by the number of processors available to the device. Default is 2.\n"
@@ -504,7 +488,7 @@ void displaySubarray(int arr[], int indexL, int indexR, char* name) {
     // for(len = 0; name[len] != '\0'; len++);
     // if (len > 8) name = "subarray";
 
-    if (quietFlag || !printFlag) return;
+    if (quietFlag) return;
     
     int counter;
     int arrSize;
@@ -536,12 +520,7 @@ void debugPrintGlobalFlags(void) {
     printf(
         "\n"
         "FLAGS\n"
-        "       printFlag (%d)\n"
-        "       printMaxDepth (%d)\n"
-        // "       curDepth (%d)\n"
-        "       maxDepth (%d)\n"
         "       quietFlag (%d)\n"
-        "\n", printFlag, printMaxDepth, maxDepth, quietFlag
-        // "\n", printFlag, printMaxDepth, curDepth, maxDepth, quietFlag
+        "\n", quietFlag
     );
 }

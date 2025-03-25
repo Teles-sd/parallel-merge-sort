@@ -30,7 +30,7 @@ else
     echo    "       Runs parms repeatedly and stores the results in sequential-tests.csv."
     echo    ""
     echo    "       For each of the arraySize 10, 100, 1000, 10000, 100000 and 1000000; runs parms RUN_REPETITIONS times."
-    echo    "       Also repeats each run with the numThreads 2, 4, 6, 8 and 12 (if available)."
+    echo    "       Also repeats each run with the numThreads 2, 4, and 8 (if available)."
     echo    "       RUN_REPETITIONS must be an integer value bigger than 0."
     echo    "       The time saved is in milliseconds."
     echo    ""

@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <stdio.h>      // printf, fprintf
 #include <stdlib.h>     // atoi, rand
 #include <unistd.h>     // getopt
 #include <omp.h>        // omp_get_wtime
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
         switch (flag) {
             case 'h':
                 print_help();
-                return 1;
+                return 0;
             case 'p':
                 printFlag = 1;
                 inputVal = atoi(optarg);
@@ -102,7 +102,7 @@ int main(int argc, char* argv[]) {
     // Debug
     // debugPrintGlobalFlags();
 
-    // Array size
+    // Check array size
     if ( !(0 < arraySize && arraySize <= 1000000) ) {
         printf("\nArray size invalid: %d", arraySize);
         printf("\nMinimum array size: 1");
@@ -160,6 +160,17 @@ int main(int argc, char* argv[]) {
         if (timeFlag) printf("%f", wtime_taken*timeFlag);
         // else printf("\nDone!\n\n");
     }
+
+    // Validation
+    int incorrectSort = 0;
+    for (int i=0; i<(arraySize-1); i++) {
+        if (array[i] > array[i+1]) {
+            incorrectSort++;
+        }
+    }
+    if (incorrectSort) {
+        printf("Warning: incorrect sorting. (%d)\n\n", incorrectSort);
+    } else if (!moreQuietFlag) printf("Sorting is correct . (%d)\n\n", incorrectSort);
 
     // Freeing allocated memory
     free(array);
