@@ -667,10 +667,7 @@ void mergeSort(int *arr, int arrSize) {
             MPI_Comm_split(mpiShorterComm, color, mpiMyRank, &mpiShorterComm);
 
             // All other processes will not be necessary anymore
-            if ( !(mpiMyRank <= 1) ) {
-                MPI_Comm_free(&mpiShorterComm);
-                break;
-            }
+            if ( !(mpiMyRank <= 1) ) break;
 
             // Broadcast the randomized array to smaller communicator
             MPI_Bcast(arr, arrSize, MPI_INT, mpiRootRank, mpiShorterComm);
